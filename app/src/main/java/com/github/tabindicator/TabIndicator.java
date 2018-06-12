@@ -197,7 +197,6 @@ public class TabIndicator<T> extends HorizontalScrollView {
         float selectX = selectedTabItemView.getX();
         if (x != selectX) {
             ValueAnimator translationAnimator = ValueAnimator.ofFloat(x, selectX);
-            translationAnimator.setDuration(250);
             translationAnimator.addUpdateListener(
                     new ValueAnimator.AnimatorUpdateListener() {
                         @Override
@@ -228,7 +227,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
         if (!animatorList.isEmpty()) {
             AnimatorSet animatorSet = new AnimatorSet();
-            animatorSet.setDuration(500);
+            animatorSet.setDuration(250);
             animatorSet.playTogether(animatorList);
             animatorSet.start();
         }
