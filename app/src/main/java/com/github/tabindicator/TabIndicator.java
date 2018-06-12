@@ -59,7 +59,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
     }
 
     // custom ui style
-    public void setTabAdapter(TabAdapter<T> tabAdapter) {
+    public void setAdapter(TabAdapter<T> tabAdapter) {
         this.tabAdapter = tabAdapter;
     }
 
