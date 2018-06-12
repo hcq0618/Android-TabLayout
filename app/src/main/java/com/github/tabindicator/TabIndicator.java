@@ -115,15 +115,14 @@ public class TabIndicator<T> extends HorizontalScrollView {
             position += 1;
         }
 
+        tabAdapter.onSelectTab(selectedTabItemView, true);
+
         resetTabIndicator();
     }
 
     private void resetTabIndicator() {
         if (tabIndicator == null) {
             tabIndicator = tabAdapter.onCreateTabIndicator();
-            if (tabIndicator != null) {
-                container.addView(tabIndicator);
-            }
         }
 
         if (tabIndicator != null && selectedTabItemView != null) {
@@ -134,11 +133,13 @@ public class TabIndicator<T> extends HorizontalScrollView {
                             tabIndicator.setLeft(selectedTabItemView.getLeft());
                             tabIndicator.setRight(selectedTabItemView.getRight());
 
-                            tabAdapter.onSelectTab(selectedTabItemView, true);
-
                             tabIndicator.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                         }
                     });
+        }
+
+        if (tabIndicator != null && tabIndicator.getParent() == null) {
+            container.addView(tabIndicator);
         }
     }
 
@@ -196,7 +197,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
         float selectX = selectedTabItemView.getX();
         if (x != selectX) {
             ValueAnimator translationAnimator = ValueAnimator.ofFloat(x, selectX);
-            translationAnimator.setDuration(500);
+            translationAnimator.setDuration(250);
             translationAnimator.addUpdateListener(
                     new ValueAnimator.AnimatorUpdateListener() {
                         @Override
@@ -208,21 +209,21 @@ public class TabIndicator<T> extends HorizontalScrollView {
             animatorList.add(translationAnimator);
         }
 
-        final ViewGroup.LayoutParams layoutParams = tabIndicator.getLayoutParams();
-        if (layoutParams != null) {
-            int width = layoutParams.width;
-            int selectWidth = selectedTabItemView.getWidth();
-            if (width != selectWidth) {
-                ValueAnimator widthAnimator = ValueAnimator.ofInt(width, selectWidth);
-                widthAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                    @Override
-                    public void onAnimationUpdate(ValueAnimator animation) {
+        int width = tabIndicator.getWidth();
+        int selectWidth = selectedTabItemView.getWidth();
+        if (width != selectWidth) {
+            ValueAnimator widthAnimator = ValueAnimator.ofInt(width, selectWidth);
+            widthAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    ViewGroup.LayoutParams layoutParams = tabIndicator.getLayoutParams();
+                    if (layoutParams != null) {
                         layoutParams.width = (int) animation.getAnimatedValue();
                         tabIndicator.setLayoutParams(layoutParams);
                     }
-                });
-                animatorList.add(widthAnimator);
-            }
+                }
+            });
+            animatorList.add(widthAnimator);
         }
 
         if (!animatorList.isEmpty()) {
