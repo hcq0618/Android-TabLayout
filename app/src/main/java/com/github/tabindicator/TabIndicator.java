@@ -5,19 +5,14 @@ import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 
 public class TabIndicator<T> extends HorizontalScrollView {
 
@@ -63,8 +58,8 @@ public class TabIndicator<T> extends HorizontalScrollView {
         this.tabAdapter = tabAdapter;
     }
 
-    // bind data   <title,data>
-    public void setData(LinkedHashMap<String, T> data) {
+    // bind data
+    public void setData(ArrayList<TabItem<T>> data) {
         if (data == null) {
             return;
         }
@@ -86,30 +81,27 @@ public class TabIndicator<T> extends HorizontalScrollView {
             return;
         }
 
-        Set<Map.Entry<String, T>> entrySet = data.entrySet();
         int position = 0;
-        for (Map.Entry<String, T> entry : entrySet) {
+        for (final TabItem<T> tabItem : data) {
             final int index = position;
-            String tabName = entry.getKey();
-            final T tabData = entry.getValue();
 
-            View itemView = tabAdapter.onCreateTabItemView(tabName, tabData, position);
+            View itemView = tabAdapter.onCreateTabItemView(tabItem.tabName, tabItem, position);
             if (itemView != null) {
+                if (tabView.getChildCount() == 0) {
+                    selectedTabItemView = itemView;
+                }
+
                 itemView.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         selectTab(index);
 
                         if (onTabClickListener != null) {
-                            onTabClickListener.onTabClick(v, tabData, index);
+                            onTabClickListener.onTabClick(v, tabItem, index);
                         }
                     }
                 });
                 tabView.addView(itemView);
-
-                if (selectedTabItemView == null) {
-                    selectedTabItemView = itemView;
-                }
             }
 
             position += 1;
@@ -117,34 +109,42 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
         tabAdapter.onSelectTab(selectedTabItemView, true);
 
-        resetTabIndicator();
+        initTabIndicator();
     }
 
-    private void resetTabIndicator() {
+    private void initTabIndicator() {
         if (tabIndicator == null) {
             tabIndicator = tabAdapter.onCreateTabIndicator();
+            if (tabIndicator != null) {
+                container.addView(tabIndicator);
+            }
         }
 
         if (tabIndicator != null && selectedTabItemView != null) {
-            tabIndicator.getViewTreeObserver().addOnGlobalLayoutListener(
+            selectedTabItemView.getViewTreeObserver().addOnGlobalLayoutListener(
                     new ViewTreeObserver.OnGlobalLayoutListener() {
                         @Override
                         public void onGlobalLayout() {
-                            tabIndicator.setLeft(selectedTabItemView.getLeft());
-                            tabIndicator.setRight(selectedTabItemView.getRight());
+                            ViewGroup.LayoutParams layoutParams = tabIndicator.getLayoutParams();
+                            if (layoutParams != null) {
+                                layoutParams.width = selectedTabItemView.getWidth();
+                                tabIndicator.setLayoutParams(layoutParams);
+                            }
 
-                            tabIndicator.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            tabIndicator.setX(selectedTabItemView.getX());
+
+                            selectedTabItemView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                         }
                     });
-        }
-
-        if (tabIndicator != null && tabIndicator.getParent() == null) {
-            container.addView(tabIndicator);
         }
     }
 
     public void selectTab(int position) {
         int tabCount = tabView.getChildCount();
+        if (position < 0 || position >= tabCount) {
+            return;
+        }
+
         for (int i = 0; i < tabCount; i++) {
             View childView = tabView.getChildAt(i);
 
@@ -157,29 +157,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
         startTabIndicatorAnimator();
 
-        scrollToCenterHorizontal(selectedTabItemView);
-    }
-
-    private void scrollToCenterHorizontal(View child) {
-        int leftDistance = child.getLeft();
-        int tabWidth = child.getWidth();
-        int screenWidth = getScreenWidthPixels();
-        int distanceShouldScrollTo = leftDistance + tabWidth / 2 - screenWidth / 2;
-        if (distanceShouldScrollTo > 0) {
-            smoothScrollTo(distanceShouldScrollTo, 0);
-        } else {
-            smoothScrollTo(0, 0);
-        }
-    }
-
-    private int getScreenWidthPixels() {
-        DisplayMetrics dm = new DisplayMetrics();
-        WindowManager manager = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
-        if (manager != null) {
-            manager.getDefaultDisplay().getMetrics(dm);
-            return dm.widthPixels;
-        }
-        return 0;
+        ViewUtils.scrollToCenterHorizontal(this, selectedTabItemView);
     }
 
     public void setOnTabClickListener(OnTabClickListener<T> clickListener) {

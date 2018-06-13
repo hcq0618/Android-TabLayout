@@ -31,12 +31,13 @@ public class TabItemView extends AppCompatTextView {
         setTextSize(14);
         setLines(1);
         setEllipsize(TextUtils.TruncateAt.END);
+        setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         layoutParams.gravity = Gravity.CENTER;
-        setGravity(Gravity.CENTER);
+        setLayoutParams(layoutParams);
     }
 
     public void setSelectColor(@ColorRes int selectColor) {

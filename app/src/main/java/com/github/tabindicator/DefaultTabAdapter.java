@@ -28,7 +28,7 @@ public class DefaultTabAdapter<T> implements TabAdapter<T> {
     }
 
     @Override
-    public TabItemView onCreateTabItemView(String title, T itemData, int position) {
+    public TabItemView onCreateTabItemView(String title, TabItem<T> tabItem, int position) {
         TabItemView itemView = new TabItemView(context);
 
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
@@ -50,7 +50,7 @@ public class DefaultTabAdapter<T> implements TabAdapter<T> {
                 ViewUtils.dip2px(context, 64),
                 ViewUtils.dip2px(context, 2)
         );
-        layoutParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        layoutParams.gravity = Gravity.BOTTOM;
         tabIndicator.setBackgroundColor(Color.parseColor("#00b888"));
         tabIndicator.setLayoutParams(layoutParams);
         return tabIndicator;
