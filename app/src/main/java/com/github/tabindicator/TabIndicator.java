@@ -4,13 +4,14 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
-import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 
@@ -18,7 +19,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
     private final FrameLayout container;
 
-    private LinearLayout tabView;
+    private ViewGroup tabView;
 
     private OnTabClickListener<T> onTabClickListener;
 
@@ -27,6 +28,10 @@ public class TabIndicator<T> extends HorizontalScrollView {
     private View tabIndicator;
 
     private View selectedTabItemView;
+
+    private ArrayList<TabItem<T>> data;
+
+    private long indicatorAnimationDuration = 250;
 
     public TabIndicator(Context context) {
         this(context, null);
@@ -39,8 +44,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
     public TabIndicator(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
-        int height = ViewUtils.dip2px(context, 44);
-        setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
+        setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, getLayoutHeight()));
         setHorizontalScrollBarEnabled(false);
         setHorizontalFadingEdgeEnabled(false);
         setOverScrollMode(OVER_SCROLL_NEVER);
@@ -53,16 +57,22 @@ public class TabIndicator<T> extends HorizontalScrollView {
         ));
     }
 
+    protected int getLayoutHeight() {
+        return ViewUtils.dip2px(getContext(), 44);
+    }
+
     // custom ui style
     public void setAdapter(TabAdapter<T> tabAdapter) {
         this.tabAdapter = tabAdapter;
     }
 
-    // bind data
     public void setData(ArrayList<TabItem<T>> data) {
-        if (data == null) {
-            return;
-        }
+        setData(data, null);
+    }
+
+    // bind data
+    public void setData(ArrayList<TabItem<T>> data, String selectedName) {
+        this.data = data;
 
         Context context = getContext();
 
@@ -77,9 +87,11 @@ public class TabIndicator<T> extends HorizontalScrollView {
             tabView.removeAllViews();
         }
 
-        if (tabView == null) {
+        if (data == null) {
             return;
         }
+
+        View selectedTabItemView = null;
 
         int position = 0;
         for (final TabItem<T> tabItem : data) {
@@ -87,7 +99,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
             View itemView = tabAdapter.onCreateTabItemView(tabItem.tabName, tabItem, position);
             if (itemView != null) {
-                if (tabView.getChildCount() == 0) {
+                if (TextUtils.equals(selectedName, tabItem.tabName)) {
                     selectedTabItemView = itemView;
                 }
 
@@ -107,6 +119,14 @@ public class TabIndicator<T> extends HorizontalScrollView {
             position += 1;
         }
 
+        if (selectedTabItemView == null) {
+            if (tabView.getChildCount() > 0) {
+                selectedTabItemView = tabView.getChildAt(0);
+            }
+        }
+
+        this.selectedTabItemView = selectedTabItemView;
+
         tabAdapter.onSelectTab(selectedTabItemView, true);
 
         initTabIndicator();
@@ -125,18 +145,59 @@ public class TabIndicator<T> extends HorizontalScrollView {
                     new ViewTreeObserver.OnGlobalLayoutListener() {
                         @Override
                         public void onGlobalLayout() {
+                            int tabIndicatorWidth = getTabIndicatorWidth();
+                            if (tabIndicatorWidth == 0) {
+                                return;
+                            }
+
                             ViewGroup.LayoutParams layoutParams = tabIndicator.getLayoutParams();
                             if (layoutParams != null) {
-                                layoutParams.width = selectedTabItemView.getWidth();
+                                layoutParams.width = tabIndicatorWidth;
                                 tabIndicator.setLayoutParams(layoutParams);
                             }
 
-                            tabIndicator.setX(selectedTabItemView.getX());
-
-                            selectedTabItemView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            selectedTabItemView.getViewTreeObserver().removeOnGlobalLayoutListener(
+                                    this);
                         }
                     });
+            selectedTabItemView.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    int tabIndicatorWidth = getTabIndicatorWidth();
+                    tabIndicator.setX(getTabIndicatorX(selectedTabItemView, tabIndicatorWidth));
+
+                    selectedTabItemView.removeOnLayoutChangeListener(this);
+                }
+            });
         }
+    }
+
+    public void setIndicatorAnimationDuration(long indicatorAnimationDuration) {
+        this.indicatorAnimationDuration = indicatorAnimationDuration;
+    }
+
+    public int getTabPosition(View tabItemView) {
+        return tabView.indexOfChild(tabItemView);
+    }
+
+    public View getTabItemView(int position) {
+        return tabView.getChildAt(position);
+    }
+
+    public View getSelectedTabItemView() {
+        return selectedTabItemView;
+    }
+
+    public T getSelectedItemData() {
+        int position = getTabPosition(selectedTabItemView);
+        int size = data.size();
+        for (int i = 0; i < size; i++) {
+            if (i == position) {
+                return data.get(i).tabData;
+            }
+        }
+        return null;
     }
 
     public void selectTab(int position) {
@@ -156,25 +217,37 @@ public class TabIndicator<T> extends HorizontalScrollView {
         }
 
         startTabIndicatorAnimator();
-
-        ViewUtils.scrollToCenterHorizontal(this, selectedTabItemView);
     }
 
     public void setOnTabClickListener(OnTabClickListener<T> clickListener) {
         onTabClickListener = clickListener;
     }
 
-    private void startTabIndicatorAnimator() {
+    protected int getTabIndicatorWidth() {
+        return getTabItemViewWidth(selectedTabItemView);
+    }
+
+    protected int getTabIndicatorX(View tabItemView, int tabIndicatorWidth) {
+        return (int) (tabItemView.getX() + (tabItemView.getWidth() - tabIndicatorWidth) / 2);
+    }
+
+    protected int getTabItemViewWidth(View tabItemView) {
+        return tabAdapter.getTabItemViewWidth(tabItemView);
+    }
+
+    protected void startTabIndicatorAnimator() {
         if (tabIndicator == null || selectedTabItemView == null) {
             return;
         }
 
         ArrayList<Animator> animatorList = new ArrayList<>();
 
+        int tabIndicatorWidth = getTabIndicatorWidth();
+
         float x = tabIndicator.getX();
-        float selectX = selectedTabItemView.getX();
-        if (x != selectX) {
-            ValueAnimator translationAnimator = ValueAnimator.ofFloat(x, selectX);
+        float tabIndicatorX = getTabIndicatorX(selectedTabItemView, tabIndicatorWidth);
+        if (x != tabIndicatorX) {
+            ValueAnimator translationAnimator = ValueAnimator.ofFloat(x, tabIndicatorX);
             translationAnimator.addUpdateListener(
                     new ValueAnimator.AnimatorUpdateListener() {
                         @Override
@@ -186,10 +259,10 @@ public class TabIndicator<T> extends HorizontalScrollView {
             animatorList.add(translationAnimator);
         }
 
+        //宽度变化动效
         int width = tabIndicator.getWidth();
-        int selectWidth = selectedTabItemView.getWidth();
-        if (width != selectWidth) {
-            ValueAnimator widthAnimator = ValueAnimator.ofInt(width, selectWidth);
+        if (width != tabIndicatorWidth) {
+            ValueAnimator widthAnimator = ValueAnimator.ofInt(width, tabIndicatorWidth);
             widthAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
@@ -205,10 +278,13 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
         if (!animatorList.isEmpty()) {
             AnimatorSet animatorSet = new AnimatorSet();
-            animatorSet.setDuration(250);
+            animatorSet.setInterpolator(new LinearInterpolator());
+            animatorSet.setDuration(indicatorAnimationDuration);
             animatorSet.playTogether(animatorList);
             animatorSet.start();
         }
+
+        ViewUtils.scrollToCenterHorizontal(this, selectedTabItemView);
     }
 
 }

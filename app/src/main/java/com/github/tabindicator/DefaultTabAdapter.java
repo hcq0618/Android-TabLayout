@@ -17,7 +17,7 @@ public class DefaultTabAdapter<T> implements TabAdapter<T> {
     }
 
     @Override
-    public LinearLayout onCreateTabView() {
+    public ViewGroup onCreateTabView() {
         LinearLayout tabView = new LinearLayout(context);
         int padding = ViewUtils.dip2px(context, 12);
         tabView.setPadding(padding, 0, padding, 0);
@@ -59,5 +59,13 @@ public class DefaultTabAdapter<T> implements TabAdapter<T> {
     @Override
     public void onSelectTab(View tabItemView, boolean isSelect) {
         ((TabItemView) tabItemView).select(isSelect);
+    }
+
+    @Override
+    public int getTabItemViewWidth(View tabItemView) {
+        TabItemView tabItemTextView = (TabItemView) tabItemView;
+        //返回文字宽度而不是view的宽度
+        return (int) tabItemTextView.getPaint().measureText(
+                tabItemTextView.getText().toString());
     }
 }

@@ -1,14 +1,16 @@
 package com.github.tabindicator;
 
 import android.view.View;
-import android.widget.LinearLayout;
+import android.view.ViewGroup;
 
 public interface TabAdapter<T> {
-    LinearLayout onCreateTabView();
+    ViewGroup onCreateTabView();
 
     View onCreateTabItemView(String title, TabItem<T> itemData, int position);
 
     View onCreateTabIndicator();
 
     void onSelectTab(View tabItemView, boolean isSelect);
+
+    int getTabItemViewWidth(View tabItemView);
 }
