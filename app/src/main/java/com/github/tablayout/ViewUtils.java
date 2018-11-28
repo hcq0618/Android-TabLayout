@@ -1,4 +1,4 @@
-package com.github.tabindicator;
+package com.github.tablayout;
 
 import android.content.Context;
 import android.util.DisplayMetrics;

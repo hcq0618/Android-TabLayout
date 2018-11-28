@@ -1,4 +1,4 @@
-package com.github.tabindicator;
+package com.github.tablayout;
 
 public class TabItem<T> {
     public String tabName;

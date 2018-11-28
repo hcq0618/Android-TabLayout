@@ -1,4 +1,4 @@
-package com.github.tabindicator;
+package com.github.tablayout;
 
 import android.animation.Animator;
 import android.animation.AnimatorSet;
@@ -15,13 +15,13 @@ import android.widget.HorizontalScrollView;
 
 import java.util.ArrayList;
 
-public class TabIndicator<T> extends HorizontalScrollView {
+public class TabLayout<T> extends HorizontalScrollView {
 
     private final FrameLayout container;
 
     private ViewGroup tabView;
 
-    private OnTabClickListener<T> onTabClickListener;
+    private OnTabListener<T> onTabListener;
 
     private TabAdapter<T> tabAdapter;
 
@@ -33,15 +33,17 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
     private long indicatorAnimationDuration = 250;
 
-    public TabIndicator(Context context) {
+    private boolean needIndicator = true;
+
+    public TabLayout(Context context) {
         this(context, null);
     }
 
-    public TabIndicator(Context context, AttributeSet attrs) {
+    public TabLayout(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public TabIndicator(Context context, AttributeSet attrs, int defStyle) {
+    public TabLayout(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
         setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, getLayoutHeight()));
@@ -59,6 +61,10 @@ public class TabIndicator<T> extends HorizontalScrollView {
 
     protected int getLayoutHeight() {
         return ViewUtils.dip2px(getContext(), 44);
+    }
+
+    public void setNeedIndicator(boolean needIndicator) {
+        this.needIndicator = needIndicator;
     }
 
     // custom ui style
@@ -108,8 +114,8 @@ public class TabIndicator<T> extends HorizontalScrollView {
                     public void onClick(View v) {
                         selectTab(index);
 
-                        if (onTabClickListener != null) {
-                            onTabClickListener.onTabClick(v, tabItem, index);
+                        if (onTabListener != null) {
+                            onTabListener.onTabClick(v, tabItem, index);
                         }
                     }
                 });
@@ -128,8 +134,14 @@ public class TabIndicator<T> extends HorizontalScrollView {
         this.selectedTabItemView = selectedTabItemView;
 
         tabAdapter.onSelectTab(selectedTabItemView, true);
+        if (onTabListener != null) {
+            onTabListener.onTabSelected(selectedTabItemView, getSelectedItemData(),
+                    tabView.indexOfChild(selectedTabItemView));
+        }
 
-        initTabIndicator();
+        if (needIndicator) {
+            initTabIndicator();
+        }
     }
 
     private void initTabIndicator() {
@@ -210,17 +222,21 @@ public class TabIndicator<T> extends HorizontalScrollView {
             View childView = tabView.getChildAt(i);
 
             boolean isSelect = i == position;
+
+            tabAdapter.onSelectTab(childView, isSelect);
             if (isSelect) {
                 selectedTabItemView = childView;
+                if (onTabListener != null) {
+                    onTabListener.onTabSelected(selectedTabItemView, getSelectedItemData(), i);
+                }
             }
-            tabAdapter.onSelectTab(childView, isSelect);
         }
 
         startTabIndicatorAnimator();
     }
 
-    public void setOnTabClickListener(OnTabClickListener<T> clickListener) {
-        onTabClickListener = clickListener;
+    public void setOnTabListener(OnTabListener<T> clickListener) {
+        onTabListener = clickListener;
     }
 
     protected int getTabIndicatorWidth() {
@@ -236,7 +252,7 @@ public class TabIndicator<T> extends HorizontalScrollView {
     }
 
     protected void startTabIndicatorAnimator() {
-        if (tabIndicator == null || selectedTabItemView == null) {
+        if (tabIndicator == null || selectedTabItemView == null || !needIndicator) {
             return;
         }
 

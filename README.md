@@ -1,15 +1,17 @@
-# TabIndicator
+# TabLayout
 
 ## Usage
 
+This is a tab layout with automatic animation
+
 ```
-TabIndicator tabIndicator = new TabIndicator(context);
+TabLayout tabLayout = new TabLayout(context);
 // custom ui style
-tabIndicator.setAdapter(...);
+tabLayout.setAdapter(...);
 // bind data <title,data>
-tabIndicator.setData(...);
-// set tab click listener
-tabIndicator.setOnTabClickListener(...);
+tabLayout.setData(...);
+// set tab click listener and selected listener
+tabLayout.setOnTabListener(...);
 ```
 
 - - -
